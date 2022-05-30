@@ -1,12 +1,8 @@
 #pragma once
 
-#include <taichi/backends/vulkan/aot_module_loader_impl.h>
-#include <taichi/backends/vulkan/vulkan_common.h>
-#include <taichi/backends/vulkan/vulkan_loader.h>
-#include <taichi/backends/vulkan/vulkan_program.h>
-#include <taichi/gui/gui.h>
-#include <taichi/inc/constants.h>
-#include <taichi/ui/backends/vulkan/renderer.h>
+#define TI_WITH_VULKAN 1
+#include "taichi/taichi.h"
+#include "glm/glm.hpp"
 
 #include <memory>
 #include <vector>
@@ -19,14 +15,18 @@ constexpr int NUM_SUBSTEPS = 2;
 constexpr int CG_ITERS = 8;
 constexpr float ASPECT_RATIO = 2.0f;
 
-void load_data(taichi::lang::vulkan::VkRuntime* vulkan_runtime,
-               taichi::lang::DeviceAllocation& alloc, const void* data,
+void load_data(TiDevice device,
+               TiDeviceAllocation devalloc, const void* data,
                size_t size) {
-  char* const device_arr_ptr =
-      reinterpret_cast<char*>(vulkan_runtime->get_ti_device()->map(alloc));
-  std::memcpy(device_arr_ptr, data, size);
-  vulkan_runtime->get_ti_device()->unmap(alloc);
+  void* mapped = tiMapDeviceAllocation(device, devalloc);
+  std::memcpy(mapped, data, size);
+  tiUnmapDeviceAllocation(device, devalloc);
 }
+
+struct NdArray {
+  
+};
+
 
 struct ColorVertex {
   glm::vec3 pos;
@@ -65,6 +65,7 @@ void build_wall(int face, std::vector<ColorVertex>& vertices,
   }
 }
 
+#if false
 class FemApp {
  public:
   void run_init(int width, int height, std::string path_prefix,
@@ -100,6 +101,7 @@ class FemApp {
     evd_params.additional_device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     evd_params.is_for_ui = false;
     evd_params.surface_creator = nullptr;
+    // (penguinliong) vulkan context should be created outside.
 
     embedded_device_ =
         std::make_unique<taichi::lang::vulkan::VulkanDeviceCreator>(evd_params);
@@ -162,6 +164,27 @@ class FemApp {
     loaded_kernels_.update_alpha_kernel = module_->get_kernel("update_alpha");
     loaded_kernels_.update_beta_r_2_kernel =
         module_->get_kernel("update_beta_r_2");
+
+    using DeviceAllocation = taichi::lang::DeviceAllocation*;
+    using AllocParams = taichi::lang::Device::AllocParams;
+    struct ContextSetArgumentDeviceAllocationParams {
+      uint32_t shape_dims;
+      uint32_t* shape;
+      uint32_t elem_shape_dims;
+      uint32_t* elem_shape;
+    };
+    struct ContextSetArgumentScalarParams {
+      int64_t int_scalar;
+      uint64_t uint_scalar;
+      float float_scalar;
+    };
+    struct ContextSetArgumentParams {
+      uint32_t index;
+      union {
+        ContextSetArgumentDeviceAllocationParams devalloc_params;
+        ContextSetArgumentScalarParams scalar_params;
+      };
+    };
 
     // Prepare Ndarray for model
     taichi::lang::Device::AllocParams alloc_params;
@@ -576,4 +599,224 @@ class FemApp {
   taichi::lang::DeviceAllocation devalloc_box_indices_;
   taichi::lang::DeviceAllocation depth_allocation_;
   taichi::lang::DeviceAllocation render_constants_;
+};
+#endif
+
+struct Module_implicit_fem {
+  TiAotModule module_;
+  TiKernel kernel_init_ = nullptr;
+  TiKernel kernel_get_vertices_ = nullptr;
+  TiKernel kernel_get_indices_ = nullptr;
+  TiKernel kernel_get_force_ = nullptr;
+  TiKernel kernel_advect_ = nullptr;
+  TiKernel kernel_floor_bound_ = nullptr;
+  TiKernel kernel_get_b_ = nullptr;
+  TiKernel kernel_matmul_cell_ = nullptr;
+  TiKernel kernel_ndarray_to_ndarray_ = nullptr;
+  TiKernel kernel_fill_ndarray_ = nullptr;
+  TiKernel kernel_add_ndarray_ = nullptr;
+  TiKernel kernel_dot_ = nullptr;
+  TiKernel kernel_add_ = nullptr;
+  TiKernel kernel_update_alpha_ = nullptr;
+  TiKernel kernel_update_beta_r_2_ = nullptr;
+  TiKernel kernel_add_scalar_ndarray_ = nullptr;
+  TiKernel kernel_dot2scalar_ = nullptr;
+  TiKernel kernel_init_r_2_ = nullptr;
+  TiKernel kernel_get_matrix_ = nullptr;
+  TiKernel kernel_clear_field_ = nullptr;
+  TiKernel kernel_matmul_edge_ = nullptr;
+
+  TiNdShape shape_1_ { {1}, 1 };
+  TiNdShape shape_N_VERTS_ { {N_VERTS}, 1 };
+  TiNdShape shape_N_EDGES_ { {N_EDGES}, 1 };
+  TiNdShape shape_N_CELLS_ { {N_CELLS}, 1 };
+  TiNdShape elem_shape_2_1_ { {2, 1}, 2 };
+  TiNdShape elem_shape_3_1_ { {3, 1}, 2 };
+  TiNdShape elem_shape_4_1_ { {4, 1}, 2 };
+  TiNdShape elem_shape_6_1_ { {6, 1}, 2 };
+
+  Module_implicit_fem(const char* path) :
+    module_(tiLoadVulkanAotModule(path)),
+    kernel_init_(tiGetAotModuleKernel(&module_, "init")),
+    kernel_floor_bound_(tiGetAotModuleKernel(&module_, "floor_bound")),
+    kernel_get_b_(tiGetAotModuleKernel(&module_, "get_b")),
+    kernel_matmul_cell_(tiGetAotModuleKernel(&module_, "matmul_cell")),
+    kernel_ndarray_to_ndarray_(tiGetAotModuleKernel(&module_, "ndarray_to_ndarray")),
+    kernel_fill_ndarray_(tiGetAotModuleKernel(&module_, "fill_ndarray")),
+    kernel_add_ndarray_(tiGetAotModuleKernel(&module_, "add_ndarray")),
+    kernel_add_(tiGetAotModuleKernel(&module_, "add")),
+    kernel_update_alpha_(tiGetAotModuleKernel(&module_, "update_alpha")),
+    kernel_update_beta_r_2_(tiGetAotModuleKernel(&module_, "update_beta_r_2")),
+    kernel_add_scalar_ndarray_(tiGetAotModuleKernel(&module_, "add_scalar_ndarray")),
+    kernel_dot2scalar_(tiGetAotModuleKernel(&module_, "dot2scalar")),
+    kernel_init_r_2_(tiGetAotModuleKernel(&module_, "init_r_2")),
+    kernel_get_matrix_(tiGetAotModuleKernel(&module_, "get_matrix")),
+    kernel_clear_field_(tiGetAotModuleKernel(&module_, "clear_field")),
+    kernel_matmul_edge_(tiGetAotModuleKernel(&module_, "matmul_edge"))
+  {
+  }
+
+  void init(
+    TiContext context,
+    const TiNdArray& x,
+    const TiNdArray& v,
+    const TiNdArray& f,
+    const TiNdArray& ox,
+    const TiNdArray& vertices
+  ) const {
+    tiSetContextArgumentNdArray(context, 0, &x);
+    tiSetContextArgumentNdArray(context, 1, &v);
+    tiSetContextArgumentNdArray(context, 2, &f);
+    tiSetContextArgumentNdArray(context, 3, &ox);
+    tiSetContextArgumentNdArray(context, 4, &vertices);
+    tiLaunchKernel(context, kernel_init_);
+  }
+  void floor_bound(
+    TiContext context,
+    const TiNdArray& x,
+    const TiNdArray& v
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &x);
+    tiSetContextArgumentNdArray(context, 1, &v);
+    tiLaunchKernel(context, kernel_floor_bound_);
+  }
+  void get_force(
+    TiContext context,
+    const TiNdArray& x,
+    const TiNdArray& f,
+    const TiNdArray& vertices,
+    float g_x,
+    float g_y,
+    float g_z
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &x);
+    tiSetContextArgumentNdArray(context, 1, &f);
+    tiSetContextArgumentNdArray(context, 2, &vertices);
+    tiSetContextArgumentF32(context, 3, g_x);
+    tiSetContextArgumentF32(context, 4, g_y);
+    tiSetContextArgumentF32(context, 5, g_z);
+    tiLaunchKernel(context, kernel_get_force_);
+  }
+  void get_b(
+    TiContext context,
+    const TiNdArray& v,
+    const TiNdArray& b,
+    const TiNdArray& f
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &v);
+    tiSetContextArgumentNdArray(context, 1, &b);
+    tiSetContextArgumentNdArray(context, 2, &f);
+    tiLaunchKernel(context, kernel_get_b_);
+  }
+  void ndarray_to_ndarray(
+    TiContext context,
+    const TiNdArray& p0,
+    const TiNdArray& r0
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &p0);
+    tiSetContextArgumentNdArray(context, 1, &r0);
+    tiLaunchKernel(context, kernel_ndarray_to_ndarray_);
+  }
+  void fill_ndarray(
+    TiContext context,
+    const TiNdArray& ndarray,
+    float val
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &ndarray);
+    tiSetContextArgumentF32(context, 1, val);
+    tiLaunchKernel(context, kernel_fill_ndarray_);
+  }
+  void add(
+    TiContext context,
+    const TiNdArray& ans,
+    const TiNdArray& a,
+    float k,
+    const TiNdArray& b
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &ans);
+    tiSetContextArgumentNdArray(context, 1, &a);
+    tiSetContextArgumentF32(context, 2, k);
+    tiSetContextArgumentNdArray(context, 3, &b);
+    tiLaunchKernel(context, kernel_add_);
+  }
+  void update_alpha(
+    TiContext context,
+    const TiNdArray& alpha_scalar
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &alpha_scalar);
+    tiLaunchKernel(context, kernel_update_alpha_);
+  }
+  void update_beta_r_2(
+    TiContext context,
+    const TiNdArray& beta_scalar
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &beta_scalar);
+    tiLaunchKernel(context, kernel_update_beta_r_2_);
+  }
+  void add_scalar_ndarray(
+    TiContext context,
+    const TiNdArray& ans,
+    const TiNdArray& a,
+    float k,
+    const TiNdArray& scalar,
+    const TiNdArray& b
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &ans);
+    tiSetContextArgumentNdArray(context, 1, &a);
+    tiSetContextArgumentF32(context, 2, k);
+    tiSetContextArgumentNdArray(context, 3, &scalar);
+    tiSetContextArgumentNdArray(context, 4, &b);
+    tiLaunchKernel(context, kernel_add_scalar_ndarray_);
+  }
+  void dot2scalar(
+    TiContext context,
+    const TiNdArray& r0
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &r0);
+    tiSetContextArgumentNdArray(context, 1, &r0);
+    tiLaunchKernel(context, kernel_dot2scalar_);
+  }
+  void init_r_2(
+    TiContext context
+  ) {
+    tiLaunchKernel(context, kernel_init_r_2_);
+  }
+  void get_matrix(
+    TiContext context,
+    const TiNdArray& c2e,
+    const TiNdArray& vertices
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &c2e);
+    tiSetContextArgumentNdArray(context, 1, &vertices);
+    tiLaunchKernel(context, kernel_get_matrix_);
+  }
+  void clear_field(TiContext context) {
+    tiLaunchKernel(context, kernel_clear_field_);
+  }
+  void matmul_edge(
+    TiContext context,
+    const TiNdArray& ret,
+    const TiNdArray& vel,
+    const TiNdArray& edges
+  ) {
+    tiSetContextArgumentNdArray(context, 0, &ret);
+    tiSetContextArgumentNdArray(context, 1, &vel);
+    tiSetContextArgumentNdArray(context, 2, &edges);
+    tiLaunchKernel(context, kernel_matmul_edge_);
+  }
+};
+
+struct FemApp {
+  std::unique_ptr<Module_implicit_fem> implicit_fem_;
+
+  void run_init(int width, int height, const char* path_prefix) {
+    implicit_fem_ = std::make_unique<Module_implicit_fem>(path_prefix);
+    
+  }
+  void run_render_loop(float g_x = 0, float g_y = -9.8, float g_z = 0) {
+
+  }
+  void cleanup() {
+
+  }
 };

@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "fem_app.h"
+#include "GLFW/glfw3.h"
 
 int main() {
   // Init gl window
@@ -19,7 +20,7 @@ int main() {
 
   FemApp app;
   app.run_init(/*width=*/512, /*height=*/512 * ASPECT_RATIO,
-               "../../android/app/src/main/assets", window);
+               "../../android/app/src/main/assets");
 
   while (!glfwWindowShouldClose(window)) {
     app.run_render_loop();

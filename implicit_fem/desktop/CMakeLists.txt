@@ -37,7 +37,7 @@ set(TI_EXPORT_CORE ON)
 add_subdirectory(${TAICHI_REPO_DIR} taichi)
 
 
-target_include_directories(implicit_fem PUBLIC ${TAICHI_REPO_DIR}/)
+target_include_directories(implicit_fem PUBLIC ${TAICHI_REPO_DIR}/c_api/include)
 target_include_directories(implicit_fem PUBLIC ${TAICHI_REPO_DIR}/taichi/backends/vulkan)
 target_include_directories(implicit_fem PUBLIC ${TAICHI_REPO_DIR}/external/Vulkan-Headers/include/)
 target_include_directories(implicit_fem PUBLIC ${TAICHI_REPO_DIR}/external/SPIRV-Tools/include/)
@@ -53,4 +53,4 @@ target_include_directories(implicit_fem PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../in
 
 target_link_directories(implicit_fem PUBLIC ${TAICHI_REPO_DIR}/build)
 
-target_link_libraries(implicit_fem PUBLIC taichi_isolated_core glfw)
+target_link_libraries(implicit_fem PUBLIC taichi_c_api glfw)
