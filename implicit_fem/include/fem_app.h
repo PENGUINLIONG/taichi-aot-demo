@@ -635,26 +635,24 @@ struct Module_implicit_fem {
   TiNdShape elem_shape_4_1_ { {4, 1}, 2 };
   TiNdShape elem_shape_6_1_ { {6, 1}, 2 };
 
-  Module_implicit_fem(const char* path) :
-    module_(tiLoadVulkanAotModule(path)),
-    kernel_init_(tiGetAotModuleKernel(&module_, "init")),
-    kernel_floor_bound_(tiGetAotModuleKernel(&module_, "floor_bound")),
-    kernel_get_b_(tiGetAotModuleKernel(&module_, "get_b")),
-    kernel_matmul_cell_(tiGetAotModuleKernel(&module_, "matmul_cell")),
-    kernel_ndarray_to_ndarray_(tiGetAotModuleKernel(&module_, "ndarray_to_ndarray")),
-    kernel_fill_ndarray_(tiGetAotModuleKernel(&module_, "fill_ndarray")),
-    kernel_add_ndarray_(tiGetAotModuleKernel(&module_, "add_ndarray")),
-    kernel_add_(tiGetAotModuleKernel(&module_, "add")),
-    kernel_update_alpha_(tiGetAotModuleKernel(&module_, "update_alpha")),
-    kernel_update_beta_r_2_(tiGetAotModuleKernel(&module_, "update_beta_r_2")),
-    kernel_add_scalar_ndarray_(tiGetAotModuleKernel(&module_, "add_scalar_ndarray")),
-    kernel_dot2scalar_(tiGetAotModuleKernel(&module_, "dot2scalar")),
-    kernel_init_r_2_(tiGetAotModuleKernel(&module_, "init_r_2")),
-    kernel_get_matrix_(tiGetAotModuleKernel(&module_, "get_matrix")),
-    kernel_clear_field_(tiGetAotModuleKernel(&module_, "clear_field")),
-    kernel_matmul_edge_(tiGetAotModuleKernel(&module_, "matmul_edge"))
-  {
-  }
+  Module_implicit_fem(TiContext context, const char* path) :
+    module_(tiLoadAotModule(context, path)),
+    kernel_init_(tiGetAotModuleKernel(module_, "init")),
+    kernel_floor_bound_(tiGetAotModuleKernel(module_, "floor_bound")),
+    kernel_get_b_(tiGetAotModuleKernel(module_, "get_b")),
+    kernel_matmul_cell_(tiGetAotModuleKernel(module_, "matmul_cell")),
+    kernel_ndarray_to_ndarray_(tiGetAotModuleKernel(module_, "ndarray_to_ndarray")),
+    kernel_fill_ndarray_(tiGetAotModuleKernel(module_, "fill_ndarray")),
+    kernel_add_ndarray_(tiGetAotModuleKernel(module_, "add_ndarray")),
+    kernel_add_(tiGetAotModuleKernel(module_, "add")),
+    kernel_update_alpha_(tiGetAotModuleKernel(module_, "update_alpha")),
+    kernel_update_beta_r_2_(tiGetAotModuleKernel(module_, "update_beta_r_2")),
+    kernel_add_scalar_ndarray_(tiGetAotModuleKernel(module_, "add_scalar_ndarray")),
+    kernel_dot2scalar_(tiGetAotModuleKernel(module_, "dot2scalar")),
+    kernel_init_r_2_(tiGetAotModuleKernel(module_, "init_r_2")),
+    kernel_get_matrix_(tiGetAotModuleKernel(module_, "get_matrix")),
+    kernel_clear_field_(tiGetAotModuleKernel(module_, "clear_field")),
+    kernel_matmul_edge_(tiGetAotModuleKernel(module_, "matmul_edge")) {}
 
   void init(
     TiContext context,
@@ -664,11 +662,11 @@ struct Module_implicit_fem {
     const TiNdArray& ox,
     const TiNdArray& vertices
   ) const {
-    tiSetContextArgumentNdArray(context, 0, &x);
-    tiSetContextArgumentNdArray(context, 1, &v);
-    tiSetContextArgumentNdArray(context, 2, &f);
-    tiSetContextArgumentNdArray(context, 3, &ox);
-    tiSetContextArgumentNdArray(context, 4, &vertices);
+    tiSetContextArgNdArray(context, 0, &x);
+    tiSetContextArgNdArray(context, 1, &v);
+    tiSetContextArgNdArray(context, 2, &f);
+    tiSetContextArgNdArray(context, 3, &ox);
+    tiSetContextArgNdArray(context, 4, &vertices);
     tiLaunchKernel(context, kernel_init_);
   }
   void floor_bound(
@@ -676,8 +674,8 @@ struct Module_implicit_fem {
     const TiNdArray& x,
     const TiNdArray& v
   ) {
-    tiSetContextArgumentNdArray(context, 0, &x);
-    tiSetContextArgumentNdArray(context, 1, &v);
+    tiSetContextArgNdArray(context, 0, &x);
+    tiSetContextArgNdArray(context, 1, &v);
     tiLaunchKernel(context, kernel_floor_bound_);
   }
   void get_force(
@@ -689,12 +687,12 @@ struct Module_implicit_fem {
     float g_y,
     float g_z
   ) {
-    tiSetContextArgumentNdArray(context, 0, &x);
-    tiSetContextArgumentNdArray(context, 1, &f);
-    tiSetContextArgumentNdArray(context, 2, &vertices);
-    tiSetContextArgumentF32(context, 3, g_x);
-    tiSetContextArgumentF32(context, 4, g_y);
-    tiSetContextArgumentF32(context, 5, g_z);
+    tiSetContextArgNdArray(context, 0, &x);
+    tiSetContextArgNdArray(context, 1, &f);
+    tiSetContextArgNdArray(context, 2, &vertices);
+    tiSetContextArgF32(context, 3, g_x);
+    tiSetContextArgF32(context, 4, g_y);
+    tiSetContextArgF32(context, 5, g_z);
     tiLaunchKernel(context, kernel_get_force_);
   }
   void get_b(
@@ -703,9 +701,9 @@ struct Module_implicit_fem {
     const TiNdArray& b,
     const TiNdArray& f
   ) {
-    tiSetContextArgumentNdArray(context, 0, &v);
-    tiSetContextArgumentNdArray(context, 1, &b);
-    tiSetContextArgumentNdArray(context, 2, &f);
+    tiSetContextArgNdArray(context, 0, &v);
+    tiSetContextArgNdArray(context, 1, &b);
+    tiSetContextArgNdArray(context, 2, &f);
     tiLaunchKernel(context, kernel_get_b_);
   }
   void ndarray_to_ndarray(
@@ -713,8 +711,8 @@ struct Module_implicit_fem {
     const TiNdArray& p0,
     const TiNdArray& r0
   ) {
-    tiSetContextArgumentNdArray(context, 0, &p0);
-    tiSetContextArgumentNdArray(context, 1, &r0);
+    tiSetContextArgNdArray(context, 0, &p0);
+    tiSetContextArgNdArray(context, 1, &r0);
     tiLaunchKernel(context, kernel_ndarray_to_ndarray_);
   }
   void fill_ndarray(
@@ -722,8 +720,8 @@ struct Module_implicit_fem {
     const TiNdArray& ndarray,
     float val
   ) {
-    tiSetContextArgumentNdArray(context, 0, &ndarray);
-    tiSetContextArgumentF32(context, 1, val);
+    tiSetContextArgNdArray(context, 0, &ndarray);
+    tiSetContextArgF32(context, 1, val);
     tiLaunchKernel(context, kernel_fill_ndarray_);
   }
   void add(
@@ -733,24 +731,24 @@ struct Module_implicit_fem {
     float k,
     const TiNdArray& b
   ) {
-    tiSetContextArgumentNdArray(context, 0, &ans);
-    tiSetContextArgumentNdArray(context, 1, &a);
-    tiSetContextArgumentF32(context, 2, k);
-    tiSetContextArgumentNdArray(context, 3, &b);
+    tiSetContextArgNdArray(context, 0, &ans);
+    tiSetContextArgNdArray(context, 1, &a);
+    tiSetContextArgF32(context, 2, k);
+    tiSetContextArgNdArray(context, 3, &b);
     tiLaunchKernel(context, kernel_add_);
   }
   void update_alpha(
     TiContext context,
     const TiNdArray& alpha_scalar
   ) {
-    tiSetContextArgumentNdArray(context, 0, &alpha_scalar);
+    tiSetContextArgNdArray(context, 0, &alpha_scalar);
     tiLaunchKernel(context, kernel_update_alpha_);
   }
   void update_beta_r_2(
     TiContext context,
     const TiNdArray& beta_scalar
   ) {
-    tiSetContextArgumentNdArray(context, 0, &beta_scalar);
+    tiSetContextArgNdArray(context, 0, &beta_scalar);
     tiLaunchKernel(context, kernel_update_beta_r_2_);
   }
   void add_scalar_ndarray(
@@ -761,19 +759,19 @@ struct Module_implicit_fem {
     const TiNdArray& scalar,
     const TiNdArray& b
   ) {
-    tiSetContextArgumentNdArray(context, 0, &ans);
-    tiSetContextArgumentNdArray(context, 1, &a);
-    tiSetContextArgumentF32(context, 2, k);
-    tiSetContextArgumentNdArray(context, 3, &scalar);
-    tiSetContextArgumentNdArray(context, 4, &b);
+    tiSetContextArgNdArray(context, 0, &ans);
+    tiSetContextArgNdArray(context, 1, &a);
+    tiSetContextArgF32(context, 2, k);
+    tiSetContextArgNdArray(context, 3, &scalar);
+    tiSetContextArgNdArray(context, 4, &b);
     tiLaunchKernel(context, kernel_add_scalar_ndarray_);
   }
   void dot2scalar(
     TiContext context,
     const TiNdArray& r0
   ) {
-    tiSetContextArgumentNdArray(context, 0, &r0);
-    tiSetContextArgumentNdArray(context, 1, &r0);
+    tiSetContextArgNdArray(context, 0, &r0);
+    tiSetContextArgNdArray(context, 1, &r0);
     tiLaunchKernel(context, kernel_dot2scalar_);
   }
   void init_r_2(
@@ -786,8 +784,8 @@ struct Module_implicit_fem {
     const TiNdArray& c2e,
     const TiNdArray& vertices
   ) {
-    tiSetContextArgumentNdArray(context, 0, &c2e);
-    tiSetContextArgumentNdArray(context, 1, &vertices);
+    tiSetContextArgNdArray(context, 0, &c2e);
+    tiSetContextArgNdArray(context, 1, &vertices);
     tiLaunchKernel(context, kernel_get_matrix_);
   }
   void clear_field(TiContext context) {
@@ -799,9 +797,9 @@ struct Module_implicit_fem {
     const TiNdArray& vel,
     const TiNdArray& edges
   ) {
-    tiSetContextArgumentNdArray(context, 0, &ret);
-    tiSetContextArgumentNdArray(context, 1, &vel);
-    tiSetContextArgumentNdArray(context, 2, &edges);
+    tiSetContextArgNdArray(context, 0, &ret);
+    tiSetContextArgNdArray(context, 1, &vel);
+    tiSetContextArgNdArray(context, 2, &edges);
     tiLaunchKernel(context, kernel_matmul_edge_);
   }
 };
@@ -811,7 +809,6 @@ struct FemApp {
 
   void run_init(int width, int height, const char* path_prefix) {
     implicit_fem_ = std::make_unique<Module_implicit_fem>(path_prefix);
-    
   }
   void run_render_loop(float g_x = 0, float g_y = -9.8, float g_z = 0) {
 
