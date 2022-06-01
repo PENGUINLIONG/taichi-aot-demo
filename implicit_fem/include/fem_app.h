@@ -19,9 +19,9 @@ constexpr float ASPECT_RATIO = 2.0f;
 void load_data(TiDevice device,
   TiDeviceMemory devalloc, const void* data,
   size_t size) {
-  void* mapped = tiMapMemory(device, devalloc);
+  void* mapped = ti_map_memory(device, devalloc);
   std::memcpy(mapped, data, size);
-  tiUnmapMemory(device, devalloc);
+  ti_unmap_memory(device, devalloc);
 }
 
 template<typename T>
@@ -50,14 +50,14 @@ TiNdArray alloc_ndarray(TiDevice device, const std::vector<uint32_t>& shape, con
   mai.usage = TI_MEMORY_USAGE_STORAGE_BIT | extra_usage;
 
   TiNdArray out {};
-  out.devmem = tiAllocateMemory(device, &mai);
+  out.devmem = ti_allocate_memory(device, &mai);
   out.shape = std::move(shape2);
   out.elem_shape = std::move(elem_shape2);
   return out;
 }
 
 void free_ndarray(TiDevice device, TiNdArray& ndarray) {
-  tiFreeMemory(device, ndarray.devmem);
+  ti_free_memory(device, ndarray.devmem);
 }
 
 struct Module_implicit_fem {
@@ -86,25 +86,25 @@ struct Module_implicit_fem {
   TiKernel kernel_matmul_edge_ = TI_NULL_HANDLE;
 
   Module_implicit_fem(TiContext context, const char* module_path) :
-    module_(tiLoadVulkanAotModule(context, module_path)),
-    kernel_init_(tiGetAotModuleKernel(module_, "init")),
-    kernel_floor_bound_(tiGetAotModuleKernel(module_, "floor_bound")),
-    kernel_get_b_(tiGetAotModuleKernel(module_, "get_b")),
-    kernel_matmul_cell_(tiGetAotModuleKernel(module_, "matmul_cell")),
-    kernel_ndarray_to_ndarray_(tiGetAotModuleKernel(module_, "ndarray_to_ndarray")),
-    kernel_fill_ndarray_(tiGetAotModuleKernel(module_, "fill_ndarray")),
-    kernel_add_ndarray_(tiGetAotModuleKernel(module_, "add_ndarray")),
-    kernel_add_(tiGetAotModuleKernel(module_, "add")),
-    kernel_update_alpha_(tiGetAotModuleKernel(module_, "update_alpha")),
-    kernel_update_beta_r_2_(tiGetAotModuleKernel(module_, "update_beta_r_2")),
-    kernel_add_scalar_ndarray_(tiGetAotModuleKernel(module_, "add_scalar_ndarray")),
-    kernel_dot2scalar_(tiGetAotModuleKernel(module_, "dot2scalar")),
-    kernel_init_r_2_(tiGetAotModuleKernel(module_, "init_r_2")),
-    kernel_get_matrix_(tiGetAotModuleKernel(module_, "get_matrix")),
-    kernel_clear_field_(tiGetAotModuleKernel(module_, "clear_field")),
-    kernel_matmul_edge_(tiGetAotModuleKernel(module_, "matmul_edge")) {}
+    module_(ti_load_vulkan_aot_module(context, module_path)),
+    kernel_init_(ti_get_aot_module_kernel(module_, "init")),
+    kernel_floor_bound_(ti_get_aot_module_kernel(module_, "floor_bound")),
+    kernel_get_b_(ti_get_aot_module_kernel(module_, "get_b")),
+    kernel_matmul_cell_(ti_get_aot_module_kernel(module_, "matmul_cell")),
+    kernel_ndarray_to_ndarray_(ti_get_aot_module_kernel(module_, "ndarray_to_ndarray")),
+    kernel_fill_ndarray_(ti_get_aot_module_kernel(module_, "fill_ndarray")),
+    kernel_add_ndarray_(ti_get_aot_module_kernel(module_, "add_ndarray")),
+    kernel_add_(ti_get_aot_module_kernel(module_, "add")),
+    kernel_update_alpha_(ti_get_aot_module_kernel(module_, "update_alpha")),
+    kernel_update_beta_r_2_(ti_get_aot_module_kernel(module_, "update_beta_r_2")),
+    kernel_add_scalar_ndarray_(ti_get_aot_module_kernel(module_, "add_scalar_ndarray")),
+    kernel_dot2scalar_(ti_get_aot_module_kernel(module_, "dot2scalar")),
+    kernel_init_r_2_(ti_get_aot_module_kernel(module_, "init_r_2")),
+    kernel_get_matrix_(ti_get_aot_module_kernel(module_, "get_matrix")),
+    kernel_clear_field_(ti_get_aot_module_kernel(module_, "clear_field")),
+    kernel_matmul_edge_(ti_get_aot_module_kernel(module_, "matmul_edge")) {}
   ~Module_implicit_fem() {
-    tiDestroyAotModule(module_);
+    ti_destroy_aot_module(module_);
   }
 
   void init(
@@ -114,20 +114,20 @@ struct Module_implicit_fem {
     const TiNdArray& ox,
     const TiNdArray& vertices
   ) const {
-    tiSetContextArgNdArray(context_, 0, &x);
-    tiSetContextArgNdArray(context_, 1, &v);
-    tiSetContextArgNdArray(context_, 2, &f);
-    tiSetContextArgNdArray(context_, 3, &ox);
-    tiSetContextArgNdArray(context_, 4, &vertices);
-    tiLaunchKernel(context_, kernel_init_);
+    ti_set_context_arg_ndarray(context_, 0, &x);
+    ti_set_context_arg_ndarray(context_, 1, &v);
+    ti_set_context_arg_ndarray(context_, 2, &f);
+    ti_set_context_arg_ndarray(context_, 3, &ox);
+    ti_set_context_arg_ndarray(context_, 4, &vertices);
+    ti_launch_kernel(context_, kernel_init_);
   }
   void floor_bound(
     const TiNdArray& x,
     const TiNdArray& v
   ) {
-    tiSetContextArgNdArray(context_, 0, &x);
-    tiSetContextArgNdArray(context_, 1, &v);
-    tiLaunchKernel(context_, kernel_floor_bound_);
+    ti_set_context_arg_ndarray(context_, 0, &x);
+    ti_set_context_arg_ndarray(context_, 1, &v);
+    ti_launch_kernel(context_, kernel_floor_bound_);
   }
   void get_force(
     const TiNdArray& x,
@@ -137,39 +137,39 @@ struct Module_implicit_fem {
     float g_y,
     float g_z
   ) {
-    tiSetContextArgNdArray(context_, 0, &x);
-    tiSetContextArgNdArray(context_, 1, &f);
-    tiSetContextArgNdArray(context_, 2, &vertices);
-    tiSetContextArgF32(context_, 3, g_x);
-    tiSetContextArgF32(context_, 4, g_y);
-    tiSetContextArgF32(context_, 5, g_z);
-    tiLaunchKernel(context_, kernel_get_force_);
+    ti_set_context_arg_ndarray(context_, 0, &x);
+    ti_set_context_arg_ndarray(context_, 1, &f);
+    ti_set_context_arg_ndarray(context_, 2, &vertices);
+    ti_set_context_arg_f32(context_, 3, g_x);
+    ti_set_context_arg_f32(context_, 4, g_y);
+    ti_set_context_arg_f32(context_, 5, g_z);
+    ti_launch_kernel(context_, kernel_get_force_);
   }
   void get_b(
     const TiNdArray& v,
     const TiNdArray& b,
     const TiNdArray& f
   ) {
-    tiSetContextArgNdArray(context_, 0, &v);
-    tiSetContextArgNdArray(context_, 1, &b);
-    tiSetContextArgNdArray(context_, 2, &f);
-    tiLaunchKernel(context_, kernel_get_b_);
+    ti_set_context_arg_ndarray(context_, 0, &v);
+    ti_set_context_arg_ndarray(context_, 1, &b);
+    ti_set_context_arg_ndarray(context_, 2, &f);
+    ti_launch_kernel(context_, kernel_get_b_);
   }
   void ndarray_to_ndarray(
     const TiNdArray& p0,
     const TiNdArray& r0
   ) {
-    tiSetContextArgNdArray(context_, 0, &p0);
-    tiSetContextArgNdArray(context_, 1, &r0);
-    tiLaunchKernel(context_, kernel_ndarray_to_ndarray_);
+    ti_set_context_arg_ndarray(context_, 0, &p0);
+    ti_set_context_arg_ndarray(context_, 1, &r0);
+    ti_launch_kernel(context_, kernel_ndarray_to_ndarray_);
   }
   void fill_ndarray(
     const TiNdArray& ndarray,
     float val
   ) {
-    tiSetContextArgNdArray(context_, 0, &ndarray);
-    tiSetContextArgF32(context_, 1, val);
-    tiLaunchKernel(context_, kernel_fill_ndarray_);
+    ti_set_context_arg_ndarray(context_, 0, &ndarray);
+    ti_set_context_arg_f32(context_, 1, val);
+    ti_launch_kernel(context_, kernel_fill_ndarray_);
   }
   void add(
     const TiNdArray& ans,
@@ -177,23 +177,23 @@ struct Module_implicit_fem {
     float k,
     const TiNdArray& b
   ) {
-    tiSetContextArgNdArray(context_, 0, &ans);
-    tiSetContextArgNdArray(context_, 1, &a);
-    tiSetContextArgF32(context_, 2, k);
-    tiSetContextArgNdArray(context_, 3, &b);
-    tiLaunchKernel(context_, kernel_add_);
+    ti_set_context_arg_ndarray(context_, 0, &ans);
+    ti_set_context_arg_ndarray(context_, 1, &a);
+    ti_set_context_arg_f32(context_, 2, k);
+    ti_set_context_arg_ndarray(context_, 3, &b);
+    ti_launch_kernel(context_, kernel_add_);
   }
   void update_alpha(
     const TiNdArray& alpha_scalar
   ) {
-    tiSetContextArgNdArray(context_, 0, &alpha_scalar);
-    tiLaunchKernel(context_, kernel_update_alpha_);
+    ti_set_context_arg_ndarray(context_, 0, &alpha_scalar);
+    ti_launch_kernel(context_, kernel_update_alpha_);
   }
   void update_beta_r_2(
     const TiNdArray& beta_scalar
   ) {
-    tiSetContextArgNdArray(context_, 0, &beta_scalar);
-    tiLaunchKernel(context_, kernel_update_beta_r_2_);
+    ti_set_context_arg_ndarray(context_, 0, &beta_scalar);
+    ti_launch_kernel(context_, kernel_update_beta_r_2_);
   }
   void add_scalar_ndarray(
     const TiNdArray& ans,
@@ -202,44 +202,44 @@ struct Module_implicit_fem {
     const TiNdArray& scalar,
     const TiNdArray& b
   ) {
-    tiSetContextArgNdArray(context_, 0, &ans);
-    tiSetContextArgNdArray(context_, 1, &a);
-    tiSetContextArgF32(context_, 2, k);
-    tiSetContextArgNdArray(context_, 3, &scalar);
-    tiSetContextArgNdArray(context_, 4, &b);
-    tiLaunchKernel(context_, kernel_add_scalar_ndarray_);
+    ti_set_context_arg_ndarray(context_, 0, &ans);
+    ti_set_context_arg_ndarray(context_, 1, &a);
+    ti_set_context_arg_f32(context_, 2, k);
+    ti_set_context_arg_ndarray(context_, 3, &scalar);
+    ti_set_context_arg_ndarray(context_, 4, &b);
+    ti_launch_kernel(context_, kernel_add_scalar_ndarray_);
   }
   void dot2scalar(
     const TiNdArray& a,
     const TiNdArray& b
   ) {
-    tiSetContextArgNdArray(context_, 0, &a);
-    tiSetContextArgNdArray(context_, 1, &b);
-    tiLaunchKernel(context_, kernel_dot2scalar_);
+    ti_set_context_arg_ndarray(context_, 0, &a);
+    ti_set_context_arg_ndarray(context_, 1, &b);
+    ti_launch_kernel(context_, kernel_dot2scalar_);
   }
   void init_r_2() {
-    tiLaunchKernel(context_, kernel_init_r_2_);
+    ti_launch_kernel(context_, kernel_init_r_2_);
   }
   void get_matrix(
     const TiNdArray& c2e,
     const TiNdArray& vertices
   ) {
-    tiSetContextArgNdArray(context_, 0, &c2e);
-    tiSetContextArgNdArray(context_, 1, &vertices);
-    tiLaunchKernel(context_, kernel_get_matrix_);
+    ti_set_context_arg_ndarray(context_, 0, &c2e);
+    ti_set_context_arg_ndarray(context_, 1, &vertices);
+    ti_launch_kernel(context_, kernel_get_matrix_);
   }
   void clear_field() {
-    tiLaunchKernel(context_, kernel_clear_field_);
+    ti_launch_kernel(context_, kernel_clear_field_);
   }
   void matmul_edge(
     const TiNdArray& ret,
     const TiNdArray& vel,
     const TiNdArray& edges
   ) {
-    tiSetContextArgNdArray(context_, 0, &ret);
-    tiSetContextArgNdArray(context_, 1, &vel);
-    tiSetContextArgNdArray(context_, 2, &edges);
-    tiLaunchKernel(context_, kernel_matmul_edge_);
+    ti_set_context_arg_ndarray(context_, 0, &ret);
+    ti_set_context_arg_ndarray(context_, 1, &vel);
+    ti_set_context_arg_ndarray(context_, 2, &edges);
+    ti_launch_kernel(context_, kernel_matmul_edge_);
   }
 };
 
@@ -273,9 +273,9 @@ struct FemApp {
     width_ = width;
     height_ = height;
 
-    device_ = tiCreateDevice(TI_ARCH_VULKAN);
-    tiExportVulkanDevice(device_, &interop_info_);
-    context_ = tiCreateContext(device_);
+    device_ = ti_create_device(TI_ARCH_VULKAN);
+    ti_export_vulkan_device(device_, &interop_info_);
+    context_ = ti_create_context(device_);
     implicit_fem_ = std::make_unique<Module_implicit_fem>(context_, path_prefix);
 
     x_ = alloc_ndarray<float>(device_, { N_VERTS }, { 3, 1 }, TI_MEMORY_USAGE_VERTEX_BIT);
@@ -302,7 +302,7 @@ struct FemApp {
     implicit_fem_->clear_field();
     implicit_fem_->init(x_, v_, f_, ox_, vertices_);
     implicit_fem_->get_matrix(c2e_, vertices_);
-    tiDeviceWaitIdle(device_);
+    ti_device_wait_idle(device_);
   }
   void run_render_loop(float g_x = 0, float g_y = -9.8, float g_z = 0) {
     for (int i = 0; i < NUM_SUBSTEPS; i++) {
@@ -328,7 +328,7 @@ struct FemApp {
       implicit_fem_->add(x_, x_, DT, v_);
     }
     implicit_fem_->floor_bound(x_, v_);
-    tiDeviceWaitIdle(device_);
+    ti_device_wait_idle(device_);
   }
   void cleanup() {
     free_ndarray(device_, x_);
@@ -345,7 +345,7 @@ struct FemApp {
     free_ndarray(device_, ox_);
     free_ndarray(device_, alpha_scalar_);
     free_ndarray(device_, beta_scalar_);
-    tiDestroyContext(context_);
-    tiDestroyDevice(device_);
+    ti_destroy_context(context_);
+    ti_destroy_device(device_);
   }
 };
