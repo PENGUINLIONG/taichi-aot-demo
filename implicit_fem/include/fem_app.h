@@ -93,6 +93,7 @@ class FemApp {
       extensions.push_back(glfw_extensions[i]);
     }
 #endif  // ANDROID
+
     // Create a Vulkan Device
     taichi::lang::vulkan::VulkanDeviceCreator::Params evd_params;
     // DONT specify an api_version or you'll have to specify all extensions to be enabled
