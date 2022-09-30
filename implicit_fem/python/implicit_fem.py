@@ -21,11 +21,11 @@ def get_rel_path(*segs):
     return os.path.join(SCRIPT_PATH, *segs)
 
 
-c2e_np = np.load(get_rel_path('c2e.npy'))
-vertices_np = np.load(get_rel_path('vertices_np.npy'))
-indices_np = np.load(get_rel_path('indices_np.npy'))
-edges_np = np.load(get_rel_path('edges_np.npy'))
-ox_np = np.load(get_rel_path('ox_np.npy'))
+c2e_np = np.load(get_rel_path('c2e.npy')).astype(np.int32)
+vertices_np = np.load(get_rel_path('vertices_np.npy')).astype(np.int32)
+indices_np = np.load(get_rel_path('indices_np.npy')).astype(np.int32)
+edges_np = np.load(get_rel_path('edges_np.npy')).astype(np.int32)
+ox_np = np.load(get_rel_path('ox_np.npy')).astype(np.float32)
 
 n_edges = edges_np.shape[0]
 n_verts = ox_np.shape[0]
