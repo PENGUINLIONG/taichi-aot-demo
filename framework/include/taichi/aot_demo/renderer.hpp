@@ -1,10 +1,15 @@
 #pragma once
 #include "common.hpp"
+#include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 
-#if TI_AOT_DEMO_WITH_GLFW
+#if TI_AOT_DEMO_GLFW
 #include "GLFW/glfw3.h"
-#endif // TI_AOT_DEMO_WITH_GLFW
+#endif // TI_AOT_DEMO_GLFW
+
+#if TI_AOT_DEMO_ANDROID_APP
+#include <native_window.h>
+#endif // ANDROID
 
 namespace ti {
 namespace aot_demo {
@@ -52,6 +57,8 @@ class Renderer {
   bool in_frame_;
   VkCommandBuffer frame_command_buffer_;
 
+  void set_swapchain();
+
   std::map<TiMemory, TiVulkanMemoryInteropInfo> ti_memory_interops_;
   const TiVulkanMemoryInteropInfo& export_ti_memory(TiMemory memory);
 
@@ -66,9 +73,13 @@ public:
   ~Renderer();
 
   // Before a frame.
-#if TI_AOT_DEMO_WITH_GLFW
+#if TI_AOT_DEMO_GLFW
   void set_surface_window(GLFWwindow* window);
-#endif // TI_AOT_DEMO_WITH_GLFW
+#endif // TI_AOT_DEMO_GLFW
+#if TI_AOT_DEMO_ANDROID_APP
+  void set_surface_window(const ANativeWindow* state);
+#endif // ANDROID
+
   // FIXME: (penguinliong) This one is somehow deprecaeted so please simply don't use it.
   void set_framebuffer_size(uint32_t width, uint32_t height);
 

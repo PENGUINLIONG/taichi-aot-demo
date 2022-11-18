@@ -13,10 +13,12 @@ list(APPEND TAICHI_AOT_DEMO_LIST
 )
 
 # Add platform entry points here.
-list(APPEND TAICHI_AOT_ENTRY_POINT_LIST
-    "headless"
-    "glfw"
-)
+list(APPEND TAICHI_AOT_ENTRY_POINT_LIST "headless")
+if (ANDROID)
+    #list(APPEND TAICHI_AOT_ENTRY_POINT_LIST "android")
+else()
+    list(APPEND TAICHI_AOT_ENTRY_POINT_LIST "glfw")
+endif()
 
 
 # Check for `TAICHI_C_API_INSTALL_DIR`.
@@ -26,7 +28,7 @@ endif()
 if (NOT EXISTS $ENV{TAICHI_C_API_INSTALL_DIR})
     message(FATAL_ERROR "Environment variable TAICHI_C_API_INSTALL_DIR is not specified")
 endif()
-get_filename_component(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR} ABSOLUTE CACHE)
+get_filename_component(TAICHI_C_API_INSTALL_DIR $ENV{TAICHI_C_API_INSTALL_DIR} ABSOLUTE)
 message("-- TAICHI_C_API_INSTALL_DIR=" ${TAICHI_C_API_INSTALL_DIR})
 
 
@@ -42,7 +44,6 @@ endif()
 
 # Find dependencies.
 find_package(Vulkan REQUIRED)
-add_subdirectory(external/glfw)
 add_subdirectory(external/VulkanMemoryAllocator)
 add_subdirectory(external/glslang)
 add_subdirectory(external/glm)
@@ -53,23 +54,33 @@ add_library(GraphiT OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/src/gft/util.cpp")
 target_include_directories(GraphiT PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/graphi-t/include")
 
+if (ANDROID)
+    find_library(android android)
+    find_library(log log)
+    list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
+        ${android}
+        ${log})
+else()
+    add_subdirectory(external/glfw)
+endif()
+
 
 # Declare framework target.
 list(APPEND TaichiAotDemoFramework_SOURCES
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/common.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/framework.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/renderer.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/graphics_runtime.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/asset_manager.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/framework.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/renderer.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/glslang.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/graphics_runtime.cpp"
-# Draw functions.
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_points.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_mesh.hpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/common.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/framework.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/renderer.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/graphics_runtime.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/asset_manager.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/framework.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/renderer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/glslang.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/graphics_runtime.cpp"
+    # Draw functions.
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_points.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/include/taichi/aot_demo/draws/draw_mesh.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_points.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/draws/draw_mesh.cpp"
 )
 list(APPEND TaichiAotDemoFramework_LINK_LIBRARIES
     ${Vulkan_LIBRARY}
@@ -102,21 +113,35 @@ foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
         message("--   ${TAICHI_AOT_DEMO_DIR} @ ${TAICHI_AOT_ENTRY_POINT}")
         set(TAICHI_AOT_DEMO_CURRENT_TARGET E${TAICHI_AOT_DEMO_DIR}_${TAICHI_AOT_ENTRY_POINT})
 
-        add_executable(${TAICHI_AOT_DEMO_CURRENT_TARGET}
-            "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/${TAICHI_AOT_ENTRY_POINT}.cpp"
-            ${TaichiAotDemoFramework_SOURCES})
-        set_target_properties(${TAICHI_AOT_DEMO_CURRENT_TARGET} PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TAICHI_AOT_ENTRY_POINT})
-        target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
-            ${TAICHI_AOT_DEMO_DIR}
-            ${TaichiAotDemoFramework_LINK_LIBRARIES})
-        target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
-            ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
+        # Headless standalone runner -------------------------------------------
+        if(${TAICHI_AOT_ENTRY_POINT} STREQUAL "headless")
+            add_executable(${TAICHI_AOT_DEMO_CURRENT_TARGET}
+                "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/headless.cpp"
+                ${TaichiAotDemoFramework_SOURCES})
+            set_target_properties(${TAICHI_AOT_DEMO_CURRENT_TARGET} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TAICHI_AOT_ENTRY_POINT})
+            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                ${TAICHI_AOT_DEMO_DIR}
+                ${TaichiAotDemoFramework_LINK_LIBRARIES})
+            target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
+        endif()
 
-        # Some settings for specific entry points.
+        # GLFW windowed demo ---------------------------------------------------
         if(${TAICHI_AOT_ENTRY_POINT} STREQUAL "glfw")
+            add_executable(${TAICHI_AOT_DEMO_CURRENT_TARGET}
+                "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/glfw.cpp"
+                ${TaichiAotDemoFramework_SOURCES})
+            set_target_properties(${TAICHI_AOT_DEMO_CURRENT_TARGET} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TAICHI_AOT_ENTRY_POINT})
+            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                ${TAICHI_AOT_DEMO_DIR}
+                ${TaichiAotDemoFramework_LINK_LIBRARIES})
+            target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
+
             target_compile_definitions(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
-                TI_AOT_DEMO_WITH_GLFW=1)
+                TI_AOT_DEMO_GLFW=1)
             target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
                 glfw)
             target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
@@ -124,17 +149,25 @@ foreach(TAICHI_AOT_ENTRY_POINT ${TAICHI_AOT_ENTRY_POINT_LIST})
                 "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include")
         endif()
 
+        # Android application demo ---------------------------------------------
+        if(${TAICHI_AOT_ENTRY_POINT} STREQUAL "android")
+            add_executable(${TAICHI_AOT_DEMO_CURRENT_TARGET}
+                "${CMAKE_CURRENT_SOURCE_DIR}/framework/src/taichi/aot_demo/entry_points/android.cpp"
+                ${TaichiAotDemoFramework_SOURCES})
+            set_target_properties(${TAICHI_AOT_DEMO_CURRENT_TARGET} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TAICHI_AOT_ENTRY_POINT})
+            target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                ${TAICHI_AOT_DEMO_DIR}
+                ${TaichiAotDemoFramework_LINK_LIBRARIES})
+            target_include_directories(${TAICHI_AOT_DEMO_CURRENT_TARGET} PUBLIC
+                ${TaichiAotDemoFramework_INCLUDE_DIRECTORIES})
 
-
-        # - Cross-platform compatibility below this line -------------------------------
-
-        # If you are building for Android, you need to link to system libraries.
-        if (ANDROID)
-            find_library(android android)
-            find_library(log log)
             target_link_libraries(${TAICHI_AOT_DEMO_CURRENT_TARGET} android log)
         endif()
 
+
+
+        # - Cross-platform compatibility below this line -----------------------
 
         # Copy Taichi C-API dynamic library to build artifact directory.
         if (WIN32)

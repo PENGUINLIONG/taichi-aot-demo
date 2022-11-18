@@ -4,7 +4,7 @@
 #include "gft/args.hpp"
 #include "gft/util.hpp"
 
-static_assert(TI_AOT_DEMO_WITH_GLFW, "glfw must be provided");
+static_assert(TI_AOT_DEMO_GLFW, "glfw must be provided");
 #include "GLFW/glfw3.h"
 #include <vulkan/vulkan.h>
 
