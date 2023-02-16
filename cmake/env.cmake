@@ -34,18 +34,4 @@ function(install_shared_libraries DEMO_OUTPUT_DIRECTORY)
         file(COPY ${Taichi_REDIST_LIBRARIES} DESTINATION "${PROJECT_SOURCE_DIR}/framework/android/app/src/main/jniLibs/arm64-v8a/")
     endif()
 
-    # MoltenVK dylib should be copied to the output directory.
-    ###########################################
-    # Copy MoltenVK dylib to output directory #
-    ###########################################
-    if (APPLE)
-        find_library(MoltenVK libMoltenVK.dylib PATHS $HOMEBREW_CELLAR/molten-vk $VULKAN_SDK REQUIRED)
-        add_custom_command(
-            OUTPUT ${DEMO_OUTPUT_DIRECTORY}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-            ARGS -E copy ${MoltenVK} ${DEMO_OUTPUT_DIRECTORY}
-            VERBATIM)
-    endif()
-
 endfunction()

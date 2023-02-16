@@ -185,6 +185,8 @@ def compile_mpm88(arch, platform=None):
 if __name__ == "__main__":
     if args.arch == "vulkan":
         compile_mpm88(arch=ti.vulkan)
+    elif args.arch == "metal":
+        compile_mpm88(arch=ti.metal)
     elif args.arch == "cuda":
         compile_mpm88(arch=ti.cuda)
     elif args.arch == "x64":

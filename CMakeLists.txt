@@ -1,15 +1,30 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 
-project(TaichiAotDemo LANGUAGES C CXX)
+project(TaichiAotDemo LANGUAGES C CXX OBJC OBJCXX)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(TI_WITH_VULKAN ON) # Vulkan is always on.
+option(TI_WITH_VULKAN "Compile with Vulkan backend" ON)
+option(TI_WITH_METAL "Compile with Vulkan backend" OFF)
 option(TI_WITH_CPU "Compile with CPU backend" OFF)
 option(TI_WITH_CUDA "Compile with CUDA backend" OFF)
 option(TI_WITH_OPENGL "Compile with OPENGL backend" OFF)
+
+option(TI_AOT_DEMO_RENDER_WITH_VULKAN "Render with Vulkan renderer" ON)
+option(TI_AOT_DEMO_RENDER_WITH_METAL "Render with Vulkan renderer" OFF)
+
+option(TI_AOT_DEMO_HEADLESS "Use headless entry point" ON)
+option(TI_AOT_DEMO_GLFW "Use GLFW entry point" ON)
+option(TI_AOT_DEMO_ANDROID_APP "Use GLFW entry point" ON)
+
+if(ANDROID)
+    set(TI_AOT_DEMO_GLFW OFF)
+else()
+    set(TI_AOT_DEMO_ANDROID_APP OFF)
+endif()
 
 # 1. Configure Environments and Third-party Libraries
 include("cmake/env.cmake")
