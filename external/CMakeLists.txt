@@ -1,6 +1,3 @@
-if (NOT ANDROID)
-    add_subdirectory(glfw)
-endif()
 add_subdirectory(VulkanMemoryAllocator)
 add_subdirectory(glslang)
 
